@@ -8,13 +8,13 @@ vn = setup_vanna(vn=vn)
 
 
 def get_sql(question):
-    return "SELECT Some SQL query here \nAnother line\nhehe hoho :)"
-    # return vn.generate_sql(question=question)
+    # return "SELECT Some SQL query here \nAnother line\nhehe hoho :)"
+    return vn.generate_sql(question=question)
 
 
 def get_records(sql):
-    return pd.DataFrame({"hei": [1, -2, 3, 4], "hade": [5, 6, 7, 15]})
-    # return vn.run_sql(sql=sql)
+    # return pd.DataFrame({"hei": [1, -2, 3, 4], "hade": [5, 6, 7, 15]})
+    return vn.run_sql(sql=sql)
 
 
 def get_followup_questions(prompt, records):
