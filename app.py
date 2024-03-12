@@ -1,7 +1,6 @@
 import os
 
 import gradio as gr
-import vanna as vn
 
 from demo.utils import add_prompt_to_history, event_handler
 
