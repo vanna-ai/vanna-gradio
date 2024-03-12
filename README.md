@@ -11,10 +11,13 @@ pip install -r requirements.txt
 
 ## Usage
 
-If you're running the app locally, please add a `.env` file at the root of the project with your credentials:
+If you're running the app locally, please add a `.env` file at the root of the project with your credentials.
+
+Credentials can be either your e-mail or Vanna API key:
 
 ```bash
-VANNA_API_KEY=...
+EMAIL=username@email.com
+VANNA_API_KEY=SOME-KEY-HERE
 ```
 
 To create a Vanna API key, please refer to this [link](https://vanna.ai/).
