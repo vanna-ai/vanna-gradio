@@ -16,16 +16,16 @@ def add_prompt_to_history(history, text):
 
 def event_handler(history):
     prompt = history[-1][0]
-    # sql = "Select * FROM Genre"
+
     sql = get_sql(prompt)
     records = get_records(sql)
-    table_figure = get_table(records)
+    table = get_table(records)
     figure = get_plotly(prompt=prompt, sql=sql, df=records)
-    follow_up_questions = get_followup_questions(prompt=prompt, records=records)
+    questions = get_followup_questions(prompt=prompt, records=records)
 
     history.append([None, sql])
-    history.append([None, table_figure])
+    history.append([None, table])
     history.append([None, figure])
-    history.append([None, follow_up_questions])
+    history.append([None, questions])
 
     return history
