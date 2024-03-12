@@ -1,3 +1,4 @@
+import pandas as pd
 import plotly.graph_objects as go
 import vanna as vn
 
@@ -7,11 +8,13 @@ vn = setup_vanna(vn=vn)
 
 
 def get_sql(question):
-    return vn.generate_sql(question=question)
+    return "SELECT Some SQL query here \nAnother line\nhehe hoho :)"
+    # return vn.generate_sql(question=question)
 
 
 def get_records(sql):
-    return vn.run_sql(sql=sql)
+    return pd.DataFrame({"hei": [1, -2, 3, 4], "hade": [5, 6, 7, 15]})
+    # return vn.run_sql(sql=sql)
 
 
 def get_followup_questions(prompt, records):
@@ -44,6 +47,9 @@ def get_table(records):
                 ),
             )
         ]
+    )
+    fig.update_layout(
+        autosize=False, margin={"l": 0, "r": 0, "t": 0, "b": 0}, height=125
     )
     fig.write_image("table.jpg")
     return ("table.jpg",)
