@@ -1,99 +1,14 @@
 import os
 
 import gradio as gr
-import plotly.graph_objects as go
 import vanna as vn
 
-from src.setup import setup_vanna
-
-vn = setup_vanna(vn=vn)
-
-
-# vn.ask("What are the top 10 albums by sales?")
-
-
-def add_prompt_to_history(history, text):
-    print()
-    print("current history:", history)
-    history += [(text, None)]
-    print("history update:", history)
-    return history, gr.Textbox(value="", interactive=False)
-    # return history, gr.Code(value="", interactive=True)
-
-
-def add_file(history, file):
-    history = history + [((file.name,), None)]
-    return history
-
-
-def prompt2sql(question):
-    return vn.generate_sql(question=question)
-
-
-def sql2records(sql):
-    return vn.run_sql(sql=sql)
-
-
-def get_followup_questions(prompt, records):
-    top3 = vn.generate_followup_questions(question=prompt, df=records)[:3]
-    top3 = "\n".join(top3)
-    top3 = "Candidate follow up questions:\n" + top3
-
-    return top3
-
-
-def records2fig(prompt, sql, df):
-    code = vn.generate_plotly_code(question=prompt, sql=sql, df=df)
-    fig = vn.get_plotly_figure(plotly_code=code, df=df)
-    fig.write_image("plotly.jpg")
-
-    return ("plotly.jpg",)
-
-
-def records2table(records):
-    fig = go.Figure(
-        data=[
-            go.Table(
-                header=dict(
-                    values=list(records.columns),
-                    fill_color="paleturquoise",
-                    align="left",
-                ),
-                cells=dict(
-                    values=records.transpose().values.tolist(),
-                    fill_color="lavender",
-                    align="left",
-                ),
-            )
-        ]
-    )
-    fig.write_image("table.jpg")
-
-    return ("table.jpg",)
-
-
-def bot(history):
-    prompt = history[-1][0]
-    # sql = "Select * FROM Genre"
-    sql = prompt2sql(prompt)
-    records = sql2records(sql)
-    table_figure = records2table(records)
-    figure = records2fig(prompt=prompt, sql=sql, df=records)
-    follow_up_questions = get_followup_questions(prompt=prompt, records=records)
-
-    history.append([None, sql])
-    history.append([None, table_figure])
-    history.append([None, figure])
-    history.append([None, follow_up_questions])
-
-    return history
+from demo.utils import add_prompt_to_history, event_handler
 
 
 class webUI:
     def __init__(self):
         self.history = []
-        self.events = []
-
         self.create_components()
 
     def create_components(self):
@@ -138,12 +53,11 @@ class webUI:
                         [self.chatbot, self.question],
                         queue=False,
                     ).then(
-                        bot,
+                        event_handler,
                         self.chatbot,
                         self.chatbot,
                         api_name="bot_response",
                     )
-                    # txt_msg.then(lambda: gr.Textbox(interactive=True), None, [user_prompt], queue=False)
                     txt_msg.then(
                         lambda: gr.Code(interactive=True),
                         None,
