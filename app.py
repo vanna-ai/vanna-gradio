@@ -1,26 +1,15 @@
 import os
-import time
 
 import gradio as gr
-
-# import plotly as pl
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
+import plotly.graph_objects as go
 import vanna as vn
-from dotenv import load_dotenv
-from vanna.remote import VannaDefault
 
-pd.options.plotting.backend = "plotly"
+from src.setup import setup_vanna
+
+vn = setup_vanna(vn=vn)
 
 
-# fetch Vanna API key
-load_dotenv()
-
-# setup vanna
-vn = VannaDefault(model="chinook", api_key=None)  # os.environ.get("VANNA_API_KEY"))
-# vn.connect_to_sqlite("https://vanna.ai/Chinook.sqlite")
-vn.connect_to_sqlite("Chinook.sqlite")
+# vn.ask("What are the top 10 albums by sales?")
 
 
 def add_prompt_to_history(history, text):
@@ -45,80 +34,59 @@ def sql2records(sql):
     return vn.run_sql(sql=sql)
 
 
-def records2fig(records):
-    placeholder_dataframe = pd.DataFrame(
-        {
-            "col1": np.random.randint(low=0, high=4, size=300),
-            "col2": np.random.randint(low=8, high=15, size=300),
-        }
+def get_followup_questions(prompt, records):
+    top3 = vn.generate_followup_questions(question=prompt, df=records)[:3]
+    top3 = "\n".join(top3)
+    top3 = "Candidate follow up questions:\n" + top3
+
+    return top3
+
+
+def records2fig(prompt, sql, df):
+    code = vn.generate_plotly_code(question=prompt, sql=sql, df=df)
+    fig = vn.get_plotly_figure(plotly_code=code, df=df)
+    fig.write_image("plotly.jpg")
+
+    return ("plotly.jpg",)
+
+
+def records2table(records):
+    fig = go.Figure(
+        data=[
+            go.Table(
+                header=dict(
+                    values=list(records.columns),
+                    fill_color="paleturquoise",
+                    align="left",
+                ),
+                cells=dict(
+                    values=records.transpose().values.tolist(),
+                    fill_color="lavender",
+                    align="left",
+                ),
+            )
+        ]
     )
+    fig.write_image("table.jpg")
 
-    # placeholder_figure = pl.plot(placeholder_dataframe, kind="hist")
-
-    # placeholder_figure = pd.plotting.hist_frame(placeholder_dataframe)
-    # placeholder_figure = pl.histogram(placeholder_dataframe)
-
-    placeholder_figure, ax = plt.subplots()
-    ax.hist(placeholder_dataframe)
-
-    plt.show()
-
-    print(placeholder_figure)
-    placeholder_figure.savefig("test.jpg")
-
-    # print(placeholder_figure)
-
-    # placeholder_figure.save("test.png")
-
-    return ("test.jpg",)
-
-
-def fig_bot(history):
-    prompt = history[-1][0]
-
-    sql = "Select * FROM Genre"
-
-    records = sql2records(sql)
-
-    print(records)
-
-    history.append([None, sql])
-
-    figure = records2fig(None)
-
-    # history[-1][1] = figure
-    history.append([None, figure])
-
-    # history.append([None, ])
-
-    # gr.Plot(value=figure)
-
-    return history
+    return ("table.jpg",)
 
 
 def bot(history):
-    print("history:", history)
     prompt = history[-1][0]
+    # sql = "Select * FROM Genre"
     sql = prompt2sql(prompt)
-    print("sql:", sql)
+    records = sql2records(sql)
+    table_figure = records2table(records)
+    figure = records2fig(prompt=prompt, sql=sql, df=records)
+    follow_up_questions = get_followup_questions(prompt=prompt, records=records)
 
-    try:
-        records = sql2records(sql)
-        records.to_csv("tmp.csv")
-        print(records)
-    except Exception as e:
-        print(e)
-        # records = pd.DataFrame()
-
-    history[-1][1] = "tmp.csv"
+    history.append([None, sql])
+    history.append([None, table_figure])
+    history.append([None, figure])
+    history.append([None, follow_up_questions])
 
     return history
-
-    # history[-1][1] = ""
-    # for character in sql:
-    #    history[-1][1] += character
-    #    time.sleep(0.01)
-    #    yield history
 
 
 class webUI:
@@ -136,45 +104,58 @@ class webUI:
             avatar_images=(None, (os.path.join(os.path.abspath(""), "avatar.png"))),
             rtl=False,
             label=True,
+            height=800,
         )
 
         self.question = gr.Textbox(
             scale=4,
             show_label=False,
-            placeholder="Which artists are in the database?",
+            placeholder="What are the top 10 albums by sales?",
             container=False,
         )
 
-        self.code = gr.Code(
+        self.code_editor = gr.Code(
             interactive=True,
+            lines=51,
         )
 
         self.plot = gr.Plot()
 
+    def like_dislike_event(self):
+        pass
+
     def run(self):
         with gr.Blocks() as demo:
-            self.chatbot.render()
-            # with gr.Row():
-            self.question.render()
-            # self.code.render()
+            with gr.Row():
+                # chatbot column
+                with gr.Column():
+                    self.chatbot.render()
+                    self.question.render()
 
-            txt_msg = self.question.submit(
-                add_prompt_to_history,
-                [self.chatbot, self.question],
-                [self.chatbot, self.question],
-                queue=False,
-            ).then(
-                fig_bot,
-                self.chatbot,
-                self.chatbot,
-                api_name="bot_response",
-            )
-            # txt_msg.then(lambda: gr.Textbox(interactive=True), None, [user_prompt], queue=False)
-            txt_msg.then(
-                lambda: gr.Code(interactive=True), None, [self.question], queue=False
-            )
+                    txt_msg = self.question.submit(
+                        add_prompt_to_history,
+                        [self.chatbot, self.question],
+                        [self.chatbot, self.question],
+                        queue=False,
+                    ).then(
+                        bot,
+                        self.chatbot,
+                        self.chatbot,
+                        api_name="bot_response",
+                    )
+                    # txt_msg.then(lambda: gr.Textbox(interactive=True), None, [user_prompt], queue=False)
+                    txt_msg.then(
+                        lambda: gr.Code(interactive=True),
+                        None,
+                        [self.question],
+                        queue=False,
+                    )
 
-            # chatbot.like(print_like_dislike, None, None)
+                    self.chatbot.like(self.like_dislike_event, None, None)
+
+                # code correction column
+                with gr.Column():
+                    self.code_editor.render()
 
         demo.queue().launch(
             server_name="0.0.0.0",
