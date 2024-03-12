@@ -8,12 +8,12 @@ vn = setup_vanna(vn=vn)
 
 
 def get_sql(question):
-    # return "SELECT Some SQL query here \nAnother line\nhehe hoho :)"
+    # return "SELECT Some SQL query here \nAnother line\nmore text :)"
     return vn.generate_sql(question=question)
 
 
 def get_records(sql):
-    # return pd.DataFrame({"hei": [1, -2, 3, 4], "hade": [5, 6, 7, 15]})
+    # return pd.DataFrame({"col1": [1, -2, 3, 4, 7, 10, 5], "col2": [5, 6, 7, 15, 20, 30, 21]})
     return vn.run_sql(sql=sql)
 
 
