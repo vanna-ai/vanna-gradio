@@ -1,0 +1,3 @@
+vanna[chroma]
+gradio
+python-dotenv
