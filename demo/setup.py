@@ -14,6 +14,6 @@ def setup_vanna(vn):
             model="chinook", api_key=vn.get_api_key(os.getenv("VANNA_API_KEY"))
         )
 
-    vn.connect_to_sqlite("Chinook.sqlite")
+    vn.connect_to_sqlite("https://vanna.ai/Chinook.sqlite")
 
     return vn
